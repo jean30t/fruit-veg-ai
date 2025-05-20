@@ -4,17 +4,16 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   <title>Fruit & Veg AI Detector</title>
-  <script defer src="fruitVegDb.js"></script>
   <script defer src="script.js"></script>
   <style>
     body { font-family: Arial, sans-serif; padding: 20px; }
-    #results { margin-top: 20px; }
+    #results { margin-top: 20px; white-space: pre-line; }
     .item { padding: 10px; border: 1px solid #ccc; margin-bottom: 5px; }
   </style>
 </head>
 <body>
   <h1>Fruit & Veg Stock Detector</h1>
-  <input type="file" id="imageInput" accept="image/*" multiple />
+  <input type="file" id="imageInput" accept="image/*" />
   <button onclick="processImage()">Detect Stock</button>
   <div id="results"></div>
 </body>
