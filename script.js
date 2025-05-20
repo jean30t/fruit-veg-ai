@@ -1,92 +1,59 @@
+const apiKey = "qJw0TfxGevUPDqJEVZft";  // Public Roboflow API key
+const modelEndpoint = "https://detect.roboflow.com/fruit-vegetable-120/1";
 
-// fruitVegDb.js content merged here for simplicity
-const fruitVegDb = [
-  { name: "Apple", avgWeightKg: 0.15 },
-  { name: "Banana", avgWeightKg: 0.12 },
-  { name: "Carrot", avgWeightKg: 0.1 },
-  { name: "Tomato", avgWeightKg: 0.13 },
-  { name: "Orange", avgWeightKg: 0.2 },
-  { name: "Lime", avgWeightKg: 0.06 },
-  // ... Add all other items up to 200 here with their average weight in kg
-  // Example:
-  { name: "Strawberry", avgWeightKg: 0.005 },
-  { name: "Broccoli", avgWeightKg: 0.3 },
-  // etc...
-];
+// Approximate average weights in kg
+const avgWeights = {
+  apple: 0.15, banana: 0.12, carrot: 0.1, tomato: 0.13, orange: 0.2,
+  lime: 0.06, strawberry: 0.005, broccoli: 0.3, cucumber: 0.25,
+  onion: 0.2, lemon: 0.12, potato: 0.3, watermelon: 4,
+  // Add more here if needed...
+};
 
-// Roboflow API details
-const apiKey = "GB0kZ53wdYSBmy34HxXW";  // Your Roboflow API key
-const modelEndpoint = "https://detect.roboflow.com/fruit-veg-detector/train";
-
-// Function to send image to Roboflow and get detections
-async function detectFruitVeg(imageFile) {
-  const formData = new FormData();
-  formData.append("file", imageFile);
-
-  try {
-    const response = await fetch(`${modelEndpoint}?api_key=${apiKey}`, {
-      method: "POST",
-      body: formData,
-    });
-    if (!response.ok) throw new Error("Detection API error");
-    const data = await response.json();
-    return data.predictions; // Array of detected objects
-  } catch (error) {
-    console.error(error);
-    alert("Error calling AI detection.");
-    return [];
-  }
-}
-
-// Calculate total weight in kg based on detections
-function calculateTotalWeight(detections) {
-  const results = {};
-
-  detections.forEach((det) => {
-    const name = det.class;
-    if (!results[name]) results[name] = 0;
-    results[name]++;
-  });
-
-  let totalWeightKg = 0;
-  for (const [name, count] of Object.entries(results)) {
-    const item = fruitVegDb.find(fv => fv.name.toLowerCase() === name.toLowerCase());
-    if (item) {
-      totalWeightKg += count * item.avgWeightKg;
-    }
-  }
-
-  return totalWeightKg;
-}
-
-// Main process function called on button click
 async function processImage() {
   const input = document.getElementById("imageInput");
-  if (input.files.length === 0) {
-    alert("Please select an image first.");
+  const file = input.files[0];
+  if (!file) return alert("Please select an image first.");
+
+  const formData = new FormData();
+  formData.append("file", file);
+
+  const response = await fetch(`${modelEndpoint}?api_key=${apiKey}`, {
+    method: "POST",
+    body: formData
+  });
+
+  if (!response.ok) {
+    alert("Detection failed. Try again.");
     return;
   }
 
-  const detections = await detectFruitVeg(input.files[0]);
+  const result = await response.json();
+  const detections = result.predictions;
+
   if (detections.length === 0) {
-    document.getElementById("results").innerText = "No fruits or vegetables detected.";
+    document.getElementById("results").innerText = "No items detected.";
     return;
   }
 
-  let detectedText = "Detected items:\n";
   const counts = {};
   detections.forEach(det => {
-    counts[det.class] = (counts[det.class] || 0) + 1;
+    const label = det.class.toLowerCase();
+    counts[label] = (counts[label] || 0) + 1;
   });
+
+  let output = "Detected items:\n";
+  let totalKg = 0;
+
   for (const [name, count] of Object.entries(counts)) {
-    detectedText += `${name}: ${count}\n`;
+    const weight = avgWeights[name] || 0.1; // fallback weight
+    const subtotal = weight * count;
+    totalKg += subtotal;
+    output += `${name} x ${count} = ${subtotal.toFixed(2)} kg\n`;
   }
 
-  const totalWeightKg = calculateTotalWeight(detections);
-  const kg = Math.floor(totalWeightKg);
-  const grams = Math.round((totalWeightKg - kg) * 1000);
+  const kg = Math.floor(totalKg);
+  const grams = Math.round((totalKg - kg) * 1000);
+  output += `\nEstimated box stock: ${kg} kg ${grams} g (Box: 60x40x19 cm)`;
 
-  detectedText += `\nEstimated total stock weight in box: ${kg} kg ${grams} g`;
-
-  document.getElementById("results").innerText = detectedText;
+  document.getElementById("results").innerText = output;
 }
